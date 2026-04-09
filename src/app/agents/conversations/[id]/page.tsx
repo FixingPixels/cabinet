@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { readConversationDetail } from "@/lib/agents/conversation-store";
 import { markdownToHtml } from "@/lib/markdown/to-html";
 import { CopyButton } from "./copy-button";
-import { TranscriptViewer } from "./transcript-viewer";
+import { parseTranscript } from "./transcript-parser";
+import { ContentViewer, TranscriptViewer } from "./transcript-viewer";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,30 @@ export default async function ConversationTranscriptPage({
   }
 
   const promptText = detail.request || detail.meta.title;
-  const promptHtml = promptText ? await markdownToHtml(promptText) : "";
+  const transcriptText = detail.transcript || "No transcript captured.";
+
+  // Pre-render markdown for text blocks (client hydration doesn't work on this page)
+  async function buildHtmlMap(text: string): Promise<Record<number, string>> {
+    const blocks = parseTranscript(text);
+    const map: Record<number, string> = {};
+    let textIdx = 0;
+    for (const block of blocks) {
+      if (block.type === "text") {
+        try {
+          map[textIdx] = await markdownToHtml(block.content);
+        } catch {
+          // fallback handled by component
+        }
+        textIdx++;
+      }
+    }
+    return map;
+  }
+
+  const [promptHtmlMap, transcriptHtmlMap] = await Promise.all([
+    buildHtmlMap(promptText),
+    buildHtmlMap(transcriptText),
+  ]);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -96,16 +120,11 @@ export default async function ConversationTranscriptPage({
                 <CopyButton text={promptText} />
               </div>
             </div>
-            {promptHtml ? (
-              <div
-                className="rounded-2xl bg-muted/30 p-4 max-h-64 overflow-y-auto overflow-x-hidden prose prose-sm prose-invert max-w-none prose-headings:font-semibold prose-headings:text-foreground prose-h1:text-base prose-h2:text-[13px] prose-h3:text-[12px] prose-p:text-[13px] prose-p:text-foreground/85 prose-li:text-[13px] prose-li:text-foreground/85 prose-a:text-foreground prose-code:text-[11px] prose-code:text-foreground prose-code:bg-background prose-code:px-1 prose-code:rounded prose-pre:bg-background prose-pre:border-0 prose-pre:text-foreground prose-strong:text-foreground"
-                dangerouslySetInnerHTML={{ __html: promptHtml }}
-              />
-            ) : (
-              <pre className="whitespace-pre-wrap break-words rounded-2xl bg-muted/30 p-4 max-h-64 overflow-y-auto overflow-x-hidden font-mono text-[12px] leading-relaxed text-foreground">
-                {promptText}
-              </pre>
-            )}
+            <ContentViewer
+              text={promptText}
+              htmlMap={promptHtmlMap}
+              className="rounded-2xl bg-muted/30 p-4 max-h-[32rem] overflow-y-auto overflow-x-hidden"
+            />
           </section>
 
           <section className="space-y-6">
@@ -150,7 +169,7 @@ export default async function ConversationTranscriptPage({
           </section>
         </div>
 
-        <TranscriptViewer text={detail.transcript || "No transcript captured."} />
+        <TranscriptViewer text={transcriptText} htmlMap={transcriptHtmlMap} />
       </div>
     </main>
   );

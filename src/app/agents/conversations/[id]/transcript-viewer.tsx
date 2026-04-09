@@ -2,213 +2,11 @@
 
 import { useMemo } from "react";
 import { CopyButton } from "./copy-button";
-
-type Block =
-  | { type: "text"; content: string }
-  | { type: "diff"; header: string; lines: DiffLine[] }
-  | { type: "code"; lang: string; content: string }
-  | { type: "cabinet"; fields: { label: string; value: string }[] }
-  | { type: "structured"; label: string; value: string }
-  | { type: "tokens"; value: string };
-
-type DiffLine = { kind: "add" | "remove" | "hunk" | "header" | "plain"; text: string };
-
-const DIFF_START = /^diff --git /;
-const EMBEDDED_DIFF = /diff --git a\//;
-const STRUCTURED_RE = /^(SUMMARY|CONTEXT|CONTEXT_UPDATE|ARTIFACT|DECISION|LEARNING|GOAL_UPDATE|MESSAGE_TO)\s*(?:\[([^\]]*)\])?:\s*(.*)$/;
-const TOKENS_RE = /^[\d,]+$/;
-
-/**
- * Pre-process: some transcripts glue text directly into a diff header
- * e.g. "...targets Bidiff --git a/foo b/foo" — split into two lines.
- */
-function preprocess(text: string): string {
-  return text
-    .split("\n")
-    .flatMap((line) => {
-      if (DIFF_START.test(line)) return [line];
-      const idx = line.indexOf("diff --git a/");
-      if (idx > 0) {
-        return [line.substring(0, idx), line.substring(idx)];
-      }
-      return [line];
-    })
-    .join("\n");
-}
-
-function isDiffStart(line: string): boolean {
-  return DIFF_START.test(line);
-}
-
-function isDiffContentLine(line: string): boolean {
-  if (line.startsWith("+") || line.startsWith("-")) return true;
-  if (line.startsWith("@@")) return true;
-  if (/^(index |new file|deleted file|old mode|new mode|similarity|rename|copy)/.test(line)) return true;
-  if (line.startsWith("+++") || line.startsWith("---")) return true;
-  return false;
-}
-
-function parseDiffBlock(lines: string[], startIdx: number): { block: Block; endIdx: number } {
-  const header = lines[startIdx];
-  const diffLines: DiffLine[] = [];
-  let i = startIdx + 1;
-
-  while (i < lines.length) {
-    const line = lines[i];
-    if (isDiffStart(line)) break;
-
-    if (line.startsWith("+++") || line.startsWith("---")) {
-      diffLines.push({ kind: "header", text: line });
-    } else if (line.startsWith("@@")) {
-      diffLines.push({ kind: "hunk", text: line });
-    } else if (line.startsWith("+")) {
-      diffLines.push({ kind: "add", text: line });
-    } else if (line.startsWith("-")) {
-      diffLines.push({ kind: "remove", text: line });
-    } else if (/^(index |new file|deleted file|old mode|new mode|similarity|rename|copy)/.test(line)) {
-      diffLines.push({ kind: "header", text: line });
-    } else if (line.startsWith(" ") || line === "") {
-      const hasHunks = diffLines.some((d) => d.kind === "hunk");
-      if (hasHunks) {
-        diffLines.push({ kind: "plain", text: line });
-      } else {
-        diffLines.push({ kind: "header", text: line });
-      }
-    } else {
-      break;
-    }
-    i++;
-  }
-
-  return { block: { type: "diff", header, lines: diffLines }, endIdx: i };
-}
-
-/**
- * Parse ``` ... ``` blocks. If contents are all structured lines (SUMMARY/CONTEXT/ARTIFACT),
- * return a "cabinet" block instead of a code block.
- */
-function parseCodeBlock(lines: string[], startIdx: number): { block: Block; endIdx: number } | null {
-  const match = lines[startIdx].match(/^```(\w*)$/);
-  if (!match) return null;
-
-  const lang = match[1] || "text";
-  const codeLines: string[] = [];
-  let i = startIdx + 1;
-
-  while (i < lines.length) {
-    if (lines[i] === "```") {
-      // Check if all non-empty lines are structured metadata
-      const nonEmpty = codeLines.filter((l) => l.trim());
-      const allStructured = nonEmpty.length > 0 && nonEmpty.every((l) => STRUCTURED_RE.test(l));
-
-      if (allStructured) {
-        const fields = nonEmpty.map((l) => {
-          const m = l.match(STRUCTURED_RE)!;
-          return { label: m[2] ? `${m[1]} [${m[2]}]` : m[1], value: m[3] };
-        });
-        return { block: { type: "cabinet", fields }, endIdx: i + 1 };
-      }
-
-      return { block: { type: "code", lang, content: codeLines.join("\n") }, endIdx: i + 1 };
-    }
-    codeLines.push(lines[i]);
-    i++;
-  }
-
-  return null;
-}
-
-function parseStructuredLine(line: string): Block | null {
-  const match = line.match(/^(SUMMARY|CONTEXT|CONTEXT_UPDATE|ARTIFACT|DECISION|LEARNING|GOAL_UPDATE|MESSAGE_TO)\s*(?:\[([^\]]*)\])?:\s+(.*)$/);
-  if (!match) return null;
-  const label = match[2] ? `${match[1]} [${match[2]}]` : match[1];
-  return { type: "structured", label, value: match[3] };
-}
-
-function parseTranscript(raw: string): Block[] {
-  const text = preprocess(raw);
-  const lines = text.split("\n");
-  const blocks: Block[] = [];
-  let textBuf: string[] = [];
-
-  function flushText() {
-    if (textBuf.length > 0) {
-      const content = textBuf.join("\n").trim();
-      if (!content) { textBuf = []; return; }
-
-      // Detect orphaned diff lines (from truncated/split diffs)
-      const nonEmpty = textBuf.filter((l) => l.trim());
-      const diffLikeCount = nonEmpty.filter((l) => isDiffContentLine(l)).length;
-      if (nonEmpty.length > 0 && diffLikeCount / nonEmpty.length >= 0.5) {
-        const diffLines: DiffLine[] = textBuf
-          .filter((l) => l.trim())
-          .map((l) => {
-            if (l.startsWith("+")) return { kind: "add" as const, text: l };
-            if (l.startsWith("-")) return { kind: "remove" as const, text: l };
-            if (l.startsWith("@@")) return { kind: "hunk" as const, text: l };
-            return { kind: "plain" as const, text: l };
-          });
-        blocks.push({ type: "diff", header: "", lines: diffLines });
-      } else {
-        blocks.push({ type: "text", content });
-      }
-      textBuf = [];
-    }
-  }
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-
-    // Diff blocks
-    if (isDiffStart(line)) {
-      flushText();
-      const result = parseDiffBlock(lines, i);
-      blocks.push(result.block);
-      i = result.endIdx;
-      continue;
-    }
-
-    // Fenced code / cabinet blocks
-    if (/^```/.test(line)) {
-      const result = parseCodeBlock(lines, i);
-      if (result) {
-        flushText();
-        blocks.push(result.block);
-        i = result.endIdx;
-        continue;
-      }
-    }
-
-    // Structured metadata lines (standalone)
-    const structured = parseStructuredLine(line);
-    if (structured) {
-      flushText();
-      blocks.push(structured);
-      i++;
-      continue;
-    }
-
-    // Token count at end of transcript (e.g. "65,115")
-    if (TOKENS_RE.test(line.trim()) && i >= lines.length - 3) {
-      flushText();
-      blocks.push({ type: "tokens", value: line.trim() });
-      i++;
-      continue;
-    }
-
-    textBuf.push(line);
-    i++;
-  }
-
-  flushText();
-  return blocks;
-}
+import { parseTranscript, type Block } from "./transcript-parser";
 
 /** Render markdown-style links and inline code in text */
 function renderInlineFormatting(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  // Match [text](url) links and `inline code`
   const re = /\[([^\]]+)\]\(([^)]+)\)|`([^`]+)`/g;
   let lastIdx = 0;
   let match: RegExpExecArray | null;
@@ -218,7 +16,6 @@ function renderInlineFormatting(text: string): React.ReactNode[] {
       parts.push(text.slice(lastIdx, match.index));
     }
     if (match[1] && match[2]) {
-      // Link
       parts.push(
         <a
           key={match.index}
@@ -231,7 +28,6 @@ function renderInlineFormatting(text: string): React.ReactNode[] {
         </a>
       );
     } else if (match[3]) {
-      // Inline code
       parts.push(
         <code key={match.index} className="rounded bg-background px-1 py-0.5 text-[11px] text-foreground">
           {match[3]}
@@ -347,8 +143,18 @@ function CabinetBlock({ block }: { block: Extract<Block, { type: "cabinet" }> })
   );
 }
 
-function TextBlock({ content }: { content: string }) {
-  // Render each line, applying inline formatting
+const PROSE_CLASSES = "prose prose-sm prose-invert max-w-none prose-headings:font-semibold prose-headings:text-foreground prose-h1:text-base prose-h2:text-[13px] prose-h3:text-[12px] prose-p:text-[13px] prose-p:text-foreground/85 prose-li:text-[13px] prose-li:text-foreground/85 prose-a:text-foreground prose-code:text-[11px] prose-code:text-foreground prose-code:bg-background prose-code:px-1 prose-code:rounded prose-pre:bg-background prose-pre:border-0 prose-pre:text-foreground prose-strong:text-foreground prose-table:text-[12px] prose-th:text-foreground/80 prose-td:text-foreground/70";
+
+function MarkdownBlock({ content, html }: { content: string; html?: string }) {
+  if (html) {
+    return (
+      <div
+        className={`my-1 ${PROSE_CLASSES}`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
   const lines = content.split("\n");
   return (
     <div className="whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-foreground my-1">
@@ -369,7 +175,45 @@ function TokensBadge({ value }: { value: string }) {
   );
 }
 
-export function TranscriptViewer({ text }: { text: string }) {
+function BlockRenderer({ blocks, htmlMap }: { blocks: Block[]; htmlMap?: Record<number, string> }) {
+  let textIdx = 0;
+  return (
+    <>
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case "diff":
+            return <DiffBlock key={idx} block={block} />;
+          case "code":
+            return <CodeBlock key={idx} block={block} />;
+          case "cabinet":
+            return <CabinetBlock key={idx} block={block} />;
+          case "structured":
+            return <StructuredBadge key={idx} label={block.label} value={block.value} />;
+          case "tokens":
+            return <TokensBadge key={idx} value={block.value} />;
+          case "text": {
+            const html = htmlMap?.[textIdx];
+            textIdx++;
+            return <MarkdownBlock key={idx} content={block.content} html={html} />;
+          }
+        }
+      })}
+    </>
+  );
+}
+
+/** Renders rich content (markdown, diffs, structured badges) without a section wrapper. */
+export function ContentViewer({ text, className, htmlMap }: { text: string; className?: string; htmlMap?: Record<number, string> }) {
+  const blocks = useMemo(() => parseTranscript(text), [text]);
+
+  return (
+    <div className={className}>
+      <BlockRenderer blocks={blocks} htmlMap={htmlMap} />
+    </div>
+  );
+}
+
+export function TranscriptViewer({ text, htmlMap }: { text: string; htmlMap?: Record<number, string> }) {
   const blocks = useMemo(() => parseTranscript(text), [text]);
 
   return (
@@ -384,22 +228,7 @@ export function TranscriptViewer({ text }: { text: string }) {
         <CopyButton text={text} />
       </div>
       <div className="overflow-x-auto rounded-2xl bg-muted/30 p-4">
-        {blocks.map((block, idx) => {
-          switch (block.type) {
-            case "diff":
-              return <DiffBlock key={idx} block={block} />;
-            case "code":
-              return <CodeBlock key={idx} block={block} />;
-            case "cabinet":
-              return <CabinetBlock key={idx} block={block} />;
-            case "structured":
-              return <StructuredBadge key={idx} label={block.label} value={block.value} />;
-            case "tokens":
-              return <TokensBadge key={idx} value={block.value} />;
-            case "text":
-              return <TextBlock key={idx} content={block.content} />;
-          }
-        })}
+        <BlockRenderer blocks={blocks} htmlMap={htmlMap} />
       </div>
     </section>
   );
