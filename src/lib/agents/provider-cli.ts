@@ -1,9 +1,15 @@
 import fs from "fs";
 import { execSync, spawn } from "child_process";
 import type { AgentProvider } from "./provider-interface";
+import { getNvmNodeBin } from "./nvm-path";
+
+const nvmBin = getNvmNodeBin();
 
 export const RUNTIME_PATH = [
   `${process.env.HOME || ""}/.local/bin`,
+  "/usr/local/bin",
+  "/opt/homebrew/bin",
+  ...(nvmBin ? [nvmBin] : []),
   process.env.PATH || "",
 ].filter(Boolean).join(":");
 

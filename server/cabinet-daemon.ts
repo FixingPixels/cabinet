@@ -26,6 +26,7 @@ import {
   getDaemonPort,
 } from "../src/lib/runtime/runtime-config";
 import { getSessionLaunchSpec, resolveProviderId } from "../src/lib/agents/provider-runtime";
+import { getNvmNodeBin } from "../src/lib/agents/nvm-path";
 import {
   appendConversationTranscript,
   finalizeConversation,
@@ -59,8 +60,12 @@ console.log("Initializing Cabinet database...");
 getDb();
 console.log("Database ready.");
 
+const nvmBin = getNvmNodeBin();
 const enrichedPath = [
   `${process.env.HOME}/.local/bin`,
+  "/usr/local/bin",
+  "/opt/homebrew/bin",
+  ...(nvmBin ? [nvmBin] : []),
   process.env.PATH,
 ].join(":");
 
