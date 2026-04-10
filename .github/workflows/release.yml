@@ -66,10 +66,9 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Publish create-cabinet
-        run: |
-          # Remove the auth token placeholder so npm falls back to OIDC trusted publishing
-          sed -i 's/\/\/registry.npmjs.org\/:_authToken=.*//' "$NPM_CONFIG_USERCONFIG" 2>/dev/null || true
-          npm publish --access public --provenance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   electron-macos:
     runs-on: macos-latest
