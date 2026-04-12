@@ -1,0 +1,17 @@
+{
+  "id": "2026-04-12T06-50-24-696Z-ceo-manual",
+  "agentSlug": "ceo",
+  "cabinetPath": "example-text-your-mom",
+  "title": "dfdfdf",
+  "trigger": "manual",
+  "status": "completed",
+  "startedAt": "2026-04-12T06:50:24.696Z",
+  "promptPath": "example-text-your-mom/.agents/.conversations/2026-04-12T06-50-24-696Z-ceo-manual/prompt.md",
+  "transcriptPath": "example-text-your-mom/.agents/.conversations/2026-04-12T06-50-24-696Z-ceo-manual/transcript.txt",
+  "mentionedPaths": [],
+  "artifactPaths": [],
+  "completedAt": "2026-04-12T06:50:32.835Z",
+  "exitCode": 0,
+  "summary": "Received unclear input, asked for clarification",
+  "contextSummary": "User sent \"dfdfdf\" — no action taken"
+}

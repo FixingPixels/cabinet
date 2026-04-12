@@ -1,0 +1,6 @@
+That doesn't look like a real request. Could you clarify what you'd like me to work on?
+
+```cabinet
+SUMMARY: Received unclear input, asked for clarification
+CONTEXT: User sent "dfdfdf" — no action taken
+```

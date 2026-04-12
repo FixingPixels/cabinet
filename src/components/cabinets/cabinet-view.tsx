@@ -20,6 +20,14 @@ import { KBEditor } from "@/components/editor/editor";
 import { HeaderActions } from "@/components/layout/header-actions";
 import { VersionHistory } from "@/components/editor/version-history";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cronToHuman, cronToShortLabel } from "@/lib/agents/cron-utils";
 import { CABINET_VISIBILITY_OPTIONS } from "@/lib/cabinets/visibility";
@@ -61,7 +69,7 @@ function StatPill({ label, value, highlight }: { label: string; value: number; h
     <div className="min-w-[84px]">
       <p
         className={cn(
-          "text-[1.75rem] font-semibold leading-none tracking-tight text-foreground",
+          "font-body-serif text-[1.9rem] leading-none tracking-tight text-foreground",
           highlight && "text-primary"
         )}
       >
@@ -171,14 +179,6 @@ function CompactOrgChart({
     );
   }
 
-  function TreeLabel({ children }: { children: React.ReactNode }) {
-    return (
-      <p className="mb-2 mt-2 text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground/55">
-        {children}
-      </p>
-    );
-  }
-
   return (
     <div className="overflow-x-auto pb-2">
       {allAgents.length === 0 ? (
@@ -221,7 +221,6 @@ function CompactOrgChart({
                       <span className="text-xs font-medium text-foreground">{group.label}</span>
                     </div>
                     <VerticalConnector height={10} />
-                    <TreeLabel>Agents</TreeLabel>
                     <div className="flex w-full flex-col items-center gap-2">
                       {group.agents.map((agent) => {
                         const agentJobs = jobsForAgent(agent);
@@ -260,12 +259,12 @@ function CompactOrgChart({
                                 <button
                                   type="button"
                                   onClick={() => onAgentSend(agent)}
-                                  className="inline-flex shrink-0 items-center justify-center rounded-xl border bg-background px-3 text-[10px] font-medium text-foreground transition-colors hover:bg-muted/30"
+                                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-background text-foreground transition-colors hover:bg-muted/30"
                                   style={{ borderColor: "rgba(139, 94, 60, 0.14)" }}
-                                  aria-label={`Send a task to ${agent.name}`}
-                                  title={`Send a task to ${agent.name}`}
+                                  aria-label={`Open chat with ${agent.name}`}
+                                  title={`Open chat with ${agent.name}`}
                                 >
-                                  Send
+                                  <Send className="h-3.5 w-3.5" />
                                 </button>
                               ) : null}
                             </div>
@@ -303,8 +302,7 @@ function CompactOrgChart({
 
           {children.length > 0 ? (
             <div className="mt-8">
-              <TreeLabel>Child cabinets</TreeLabel>
-              <div className="mt-2 flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3">
                 {children.map((child) => (
                   <button
                     key={child.path}
@@ -359,10 +357,7 @@ function SchedulesPanel({
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-          Automation
-        </p>
-        <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-foreground">
+        <h2 className="text-[1.65rem] font-semibold tracking-tight text-foreground">
           Jobs and heartbeats
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -371,9 +366,7 @@ function SchedulesPanel({
       </div>
 
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/55">
-          Scheduled jobs
-        </p>
+        <h3 className="text-sm font-medium text-foreground">Scheduled jobs</h3>
         <div className="mt-3 border-t border-border/70">
           {jobsWithOwners.length > 0 ? (
             jobsWithOwners.map((job) => (
@@ -407,9 +400,7 @@ function SchedulesPanel({
       </div>
 
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/55">
-          Heartbeats
-        </p>
+        <h3 className="text-sm font-medium text-foreground">Heartbeats</h3>
         <div className="mt-3 border-t border-border/70">
           {heartbeatAgents.length > 0 ? (
             heartbeatAgents.map((agent) => (
@@ -623,10 +614,8 @@ function CabinetTaskComposer({
   return (
     <div ref={rootRef} className="space-y-5">
       <div className="space-y-3">
-        <h1 className="font-body-serif text-[2.35rem] leading-[0.96] text-foreground sm:text-[3.15rem]">
-          {greeting}, {displayName}.
-          <br />
-          What are we working on today?
+        <h1 className="font-body-serif text-[1.45rem] leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
+          {greeting}, {displayName}. What are we working on today?
         </h1>
       </div>
 
@@ -739,31 +728,46 @@ function CabinetTaskComposer({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="inline-flex min-w-0 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5">
-            {selectedAgent ? (
-              <span className="text-sm leading-none">{selectedAgent.emoji || "🤖"}</span>
-            ) : null}
-            <select
-              value={selectedAgent?.scopedId || ""}
-              onChange={(event) => {
-                const agent = assignableAgents.find((entry) => entry.scopedId === event.target.value) || null;
-                setSelectedAgent(agent);
-              }}
-              disabled={assignableAgents.length === 0}
-              className="max-w-[220px] truncate bg-transparent text-sm font-medium text-foreground outline-none"
-            >
-              {assignableAgents.length === 0 ? (
-                <option value="">No visible agents</option>
-              ) : (
-                assignableAgents.map((agent) => (
-                  <option key={agent.scopedId} value={agent.scopedId}>
-                    {agent.name}
-                    {agent.inherited ? ` · ${agent.cabinetName}` : ""}
-                  </option>
-                ))
-              )}
-            </select>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <Select
+            items={assignableAgents.map((agent) => ({
+              label: agent.name,
+              value: agent.scopedId,
+            }))}
+            value={selectedAgent?.scopedId || null}
+            onValueChange={(value) => {
+              const agent = assignableAgents.find((entry) => entry.scopedId === value) || null;
+              setSelectedAgent(agent);
+            }}
+            disabled={assignableAgents.length === 0}
+          >
+            <SelectTrigger className="min-w-[220px] rounded-full bg-background px-3">
+              <SelectValue placeholder="No visible agents" />
+            </SelectTrigger>
+            <SelectContent align="start">
+              <SelectGroup>
+                {assignableAgents.map((agent) => (
+                  <SelectItem key={agent.scopedId} value={agent.scopedId}>
+                    <span className="text-sm leading-none">{agent.emoji || "🤖"}</span>
+                    <span className="truncate">
+                      {agent.name}
+                      {agent.inherited ? ` · ${agent.cabinetName}` : ""}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground/65">
+            <kbd className="rounded border border-border bg-muted/55 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              ⌘
+            </kbd>
+            <span>+</span>
+            <kbd className="rounded border border-border bg-muted/55 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              ↵
+            </kbd>
+            <span className="ml-1">new line</span>
           </div>
         </div>
       </div>
@@ -822,10 +826,7 @@ function RecentConversations({
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-            Live activity
-          </p>
-          <div className="mt-2 flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5">
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
             <div>
               <h2 className="text-[1.65rem] font-semibold tracking-tight text-foreground">
@@ -913,6 +914,9 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
   const [displayName, setDisplayName] = useState("");
   const [requestedAgent, setRequestedAgent] = useState<CabinetAgentSummary | null>(null);
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
+  const [showCompactTitle, setShowCompactTitle] = useState(false);
+  const scrollAreaHostRef = useRef<HTMLDivElement>(null);
+  const titleSectionRef = useRef<HTMLDivElement>(null);
   const selectPage = useTreeStore((state) => state.selectPage);
   const loadPage = useEditorStore((state) => state.loadPage);
   const setSection = useAppStore((state) => state.setSection);
@@ -1041,6 +1045,37 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
   const scopeLabel =
     CABINET_VISIBILITY_OPTIONS.find((option) => option.value === cabinetVisibilityMode)?.label ||
     "Own agents only";
+  const sectionSurfaces = {
+    overview: "color-mix(in oklch, var(--background) 95%, var(--muted) 5%)",
+    activity: "color-mix(in oklch, var(--background) 97%, var(--secondary) 3%)",
+    graph: "color-mix(in oklch, var(--background) 96%, var(--muted) 4%)",
+    operations: "color-mix(in oklch, var(--background) 94%, var(--secondary) 6%)",
+  } as const;
+
+  useEffect(() => {
+    const viewport = scrollAreaHostRef.current?.querySelector<HTMLElement>(
+      '[data-slot="scroll-area-viewport"]'
+    );
+    const titleEl = titleSectionRef.current;
+
+    if (!viewport || !titleEl) return;
+
+    const updateCompactTitle = () => {
+      const viewportRect = viewport.getBoundingClientRect();
+      const titleRect = titleEl.getBoundingClientRect();
+      const shouldShow = titleRect.bottom <= viewportRect.top + 24;
+      setShowCompactTitle((current) => (current === shouldShow ? current : shouldShow));
+    };
+
+    updateCompactTitle();
+    viewport.addEventListener("scroll", updateCompactTitle, { passive: true });
+    window.addEventListener("resize", updateCompactTitle);
+
+    return () => {
+      viewport.removeEventListener("scroll", updateCompactTitle);
+      window.removeEventListener("resize", updateCompactTitle);
+    };
+  }, [cabinetName, cabinetDescription]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -1058,11 +1093,24 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
                 Back to {overview.parent.name}
               </Button>
             ) : null}
-            <div className={cn("hidden h-5 w-px bg-border/80 sm:block", !overview?.parent && "sm:hidden")} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">{cabinetName}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{cabinetPathLabel}</p>
-            </div>
+            {showCompactTitle ? (
+              <>
+                <div
+                  className={cn(
+                    "hidden h-5 w-px bg-border/80 sm:block",
+                    !overview?.parent && "sm:hidden"
+                  )}
+                />
+                <div className="min-w-0">
+                  <p className="truncate font-body-serif text-[1.1rem] leading-none text-foreground">
+                    {cabinetName}
+                  </p>
+                  <p className="truncate pt-1 text-[11px] text-muted-foreground">
+                    {cabinetDescription}
+                  </p>
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-1">
@@ -1072,85 +1120,90 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
         </div>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-          {error ? (
-            <div className="mb-8 border-b border-destructive/20 pb-4 text-sm text-destructive">
-              {error}
-            </div>
-          ) : null}
+      <div ref={scrollAreaHostRef} className="min-h-0 flex-1">
+        <ScrollArea className="h-full">
+          <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+            {error ? (
+              <div className="mb-8 border-b border-destructive/20 pb-4 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
 
-          <section className="border-b border-border/70 pb-10">
-            <div className="space-y-10">
-              <div className="space-y-8">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-                    Cabinet
-                  </p>
-                  <h2 className="mt-2 font-body-serif text-[2.2rem] leading-none tracking-tight text-foreground">
-                    {cabinetName}
-                  </h2>
-                  <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-                    {cabinetDescription}
-                  </p>
-                </div>
+            <section
+              className="-mx-4 border-b border-border/70 px-4 pb-10 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              style={{ backgroundColor: sectionSurfaces.overview }}
+            >
+              <div className="space-y-10">
+                <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-end xl:gap-12">
+                  <div className="space-y-8">
+                    <div ref={titleSectionRef}>
+                      <h2 className="font-body-serif text-[2.2rem] leading-none tracking-tight text-foreground">
+                        {cabinetName}
+                      </h2>
+                      <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+                        {cabinetDescription}
+                      </p>
+                    </div>
 
-                <div className="flex flex-wrap gap-x-8 gap-y-4">
-                  <StatPill value={visibleAgentCount} label="visible agents" />
-                  <StatPill value={activeAgents} label="active" highlight />
-                  <StatPill value={totalTaskCount} label="tasks" />
-                  <StatPill value={totalJobCount} label="jobs" />
-                  <StatPill value={heartbeatCount} label="heartbeats" />
-                  <StatPill value={visibleCabinetCount} label="cabinets in view" />
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-                    Visible agent scope
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {CABINET_VISIBILITY_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setCabinetVisibilityMode(cabinetPath, option.value)}
-                        className={cn(
-                          "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                          cabinetVisibilityMode === option.value
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-background text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {option.shortLabel}
-                      </button>
-                    ))}
+                    <div className="flex flex-wrap gap-x-8 gap-y-4">
+                      <StatPill value={visibleAgentCount} label="visible agents" />
+                      <StatPill value={activeAgents} label="active" highlight />
+                      <StatPill value={totalTaskCount} label="tasks" />
+                      <StatPill value={totalJobCount} label="jobs" />
+                      <StatPill value={heartbeatCount} label="heartbeats" />
+                      <StatPill value={visibleCabinetCount} label="cabinets in view" />
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {scopeLabel}. {childCabinetCount} child cabinet{childCabinetCount === 1 ? "" : "s"} beneath this one.
-                  </p>
+
+                  <div className="space-y-3 xl:justify-self-end xl:pb-1">
+                    <div className="flex flex-wrap gap-2">
+                      {CABINET_VISIBILITY_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setCabinetVisibilityMode(cabinetPath, option.value)}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                            cabinetVisibilityMode === option.value
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {option.shortLabel}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="max-w-[280px] text-sm text-muted-foreground">
+                      {scopeLabel}. {childCabinetCount} child cabinet{childCabinetCount === 1 ? "" : "s"} beneath this one.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border/70 pt-10">
+                  <CabinetTaskComposer
+                    cabinetPath={cabinetPath}
+                    agents={overview?.agents || []}
+                    displayName={boardName}
+                    requestedAgent={requestedAgent}
+                    focusRequest={composerFocusRequest}
+                    onNavigate={(agentSlug, agentCabinetPath, conversationId) =>
+                      setSection({
+                        type: "agent",
+                        mode: "cabinet",
+                        slug: agentSlug,
+                        cabinetPath: agentCabinetPath,
+                        agentScopedId: `${agentCabinetPath}::agent::${agentSlug}`,
+                        conversationId,
+                      })
+                    }
+                  />
                 </div>
               </div>
+            </section>
 
-              <CabinetTaskComposer
-                cabinetPath={cabinetPath}
-                agents={overview?.agents || []}
-                displayName={boardName}
-                requestedAgent={requestedAgent}
-                focusRequest={composerFocusRequest}
-                onNavigate={(agentSlug, agentCabinetPath, conversationId) =>
-                  setSection({
-                    type: "agent",
-                    mode: "cabinet",
-                    slug: agentSlug,
-                    cabinetPath: agentCabinetPath,
-                    agentScopedId: `${agentCabinetPath}::agent::${agentSlug}`,
-                    conversationId,
-                  })
-                }
-              />
-            </div>
-          </section>
-
-          <section className="border-b border-border/70 py-8">
+            <section
+              className="-mx-4 border-b border-border/70 px-4 py-8 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              style={{ backgroundColor: sectionSurfaces.activity }}
+            >
             <RecentConversations
               cabinetPath={cabinetPath}
               visibilityMode={cabinetVisibilityMode}
@@ -1163,15 +1216,15 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
               onOpen={openConversation}
               onOpenWorkspace={openCabinetAgentsWorkspace}
             />
-          </section>
+            </section>
 
-          <section className="border-b border-border/70 py-10">
+            <section
+              className="-mx-4 border-b border-border/70 px-4 py-10 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              style={{ backgroundColor: sectionSurfaces.graph }}
+            >
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-                  Team graph
-                </p>
-                <h2 className="mt-2 text-[1.8rem] font-semibold tracking-tight text-foreground">
+                <h2 className="text-[1.8rem] font-semibold tracking-tight text-foreground">
                   Cabinet team
                 </h2>
               </div>
@@ -1203,33 +1256,26 @@ export function CabinetView({ cabinetPath }: { cabinetPath: string }) {
                 onChildCabinetClick={(child) => openCabinet(child.path)}
               />
             ) : null}
-          </section>
+            </section>
 
-          <section className="grid gap-10 py-10 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <section
+              className="-mx-4 grid gap-10 px-4 py-10 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:grid-cols-[320px_minmax(0,1fr)]"
+              style={{ backgroundColor: sectionSurfaces.operations }}
+            >
             <SchedulesPanel
               agents={overview?.agents || []}
               jobs={overview?.jobs || []}
             />
 
             <div className="min-w-0">
-              <div className="border-b border-border/70 pb-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
-                  Cabinet notes
-                </p>
-                <h2 className="mt-2 text-[1.8rem] font-semibold tracking-tight text-foreground">
-                  Living brief
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Decisions, working context, and mission notes for {cabinetName}.
-                </p>
-              </div>
               <div className="min-h-[680px]">
                 <KBEditor />
               </div>
             </div>
-          </section>
-        </div>
-      </ScrollArea>
+            </section>
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 }
