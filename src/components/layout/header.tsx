@@ -1,6 +1,7 @@
 "use client";
 
-import { Copy, Download, FileCode, FileDown } from "lucide-react";
+import { useState } from "react";
+import { Copy, Download, FileCode, FileDown, ArrowRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,11 +9,51 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEditorStore } from "@/stores/editor-store";
+import { useAIPanelStore } from "@/stores/ai-panel-store";
 import { VersionHistory } from "@/components/editor/version-history";
 import { HeaderActions } from "@/components/layout/header-actions";
 
 export function Header() {
   const { frontmatter, content, currentPath } = useEditorStore();
+  const { open, addEditorSession } = useAIPanelStore();
+  const [prompt, setPrompt] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!prompt.trim() || !currentPath || submitting) return;
+    const message = prompt.trim();
+    setPrompt("");
+    setSubmitting(true);
+    open();
+    try {
+      const response = await fetch("/api/agents/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "editor",
+          pagePath: currentPath,
+          userMessage: message,
+          mentionedPaths: [],
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const conversation = data.conversation as { id: string; title: string };
+        addEditorSession({
+          id: conversation.id,
+          sessionId: conversation.id,
+          pagePath: currentPath,
+          userMessage: message,
+          prompt: conversation.title,
+          timestamp: Date.now(),
+          status: "running",
+          reconnect: true,
+        });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleCopyMarkdown = async () => {
     if (!content) return;
@@ -21,11 +62,9 @@ export function Header() {
 
   const handleCopyHTML = async () => {
     if (!content) return;
-    // Convert markdown to HTML for clipboard
     const res = await fetch(`/api/pages/${currentPath}`);
     if (res.ok) {
       const data = await res.json();
-      // Use the remark pipeline via a simple conversion
       const { markdownToHtml } = await import("@/lib/markdown/to-html");
       const html = await markdownToHtml(data.content);
       await navigator.clipboard.writeText(html);
@@ -48,13 +87,43 @@ export function Header() {
       className="flex items-center justify-between border-b border-border px-4 py-2 bg-background/80 backdrop-blur-sm transition-[padding] duration-200"
       style={{ paddingLeft: `calc(1rem + var(--sidebar-toggle-offset, 0px))` }}
     >
-      <div className="flex items-center gap-2">
+      {/* Left: page title */}
+      <div className="flex items-center gap-2 min-w-0 w-40 shrink-0">
         <h1 className="text-[13px] font-medium text-foreground truncate tracking-[-0.01em]">
           {frontmatter?.title || "Cabinet"}
         </h1>
       </div>
-      <div className="flex items-center gap-1">
-        {/* Export dropdown */}
+
+      {/* Center: AI edit prompt bubble */}
+      {currentPath && (
+        <div className="flex-1 flex justify-center px-4">
+          <div className="flex items-center w-full max-w-sm rounded-full border border-border/60 bg-muted/40 px-3 py-1 gap-2 focus-within:border-border focus-within:bg-muted/70 transition-colors">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              placeholder="How to edit this page?"
+              className="flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/50 outline-none min-w-0"
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!prompt.trim() || submitting}
+              className="shrink-0 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-30 transition-colors cursor-pointer"
+            >
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Right: actions */}
+      <div className="flex items-center gap-1 w-40 justify-end shrink-0">
         {currentPath && (
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md h-8 w-8 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
@@ -98,10 +167,8 @@ export function Header() {
           </DropdownMenu>
         )}
 
-        {/* Version history */}
         {currentPath && <VersionHistory />}
 
-        {/* Global actions: Search, Terminal, AI, Theme */}
         <HeaderActions />
       </div>
     </header>
