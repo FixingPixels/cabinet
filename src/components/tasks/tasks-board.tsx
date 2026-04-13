@@ -1382,19 +1382,15 @@ export function TasksBoard({
               </>
             )}
 
-            {/* Back to board */}
-            <div className="ml-auto flex items-center gap-2">
-              <div className="flex items-center rounded-lg border border-border/60 p-0.5">
-                <button onClick={() => setBoardView("board")} className={cn("flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors", boardView === "board" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>
-                  <KanbanSquare className="h-3.5 w-3.5" />
-                  Board
-                </button>
-                <button onClick={() => setBoardView("schedule")} className={cn("flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors", boardView === "schedule" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>
-                  <Calendar className="h-3.5 w-3.5" />
-                  Schedule
-                </button>
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-7 gap-1.5 text-xs text-muted-foreground"
+              onClick={() => setBoardView("board")}
+            >
+              <KanbanSquare className="h-3.5 w-3.5" />
+              Back to Board
+            </Button>
           </div>
         </div>
 
@@ -1614,32 +1610,15 @@ export function TasksBoard({
               </Select>
             ) : null}
 
-            <div className="flex items-center rounded-lg border border-border/60 p-0.5">
-              <button
-                onClick={() => setBoardView("board")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  boardView === "board"
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <KanbanSquare className="h-3.5 w-3.5" />
-                Board
-              </button>
-              <button
-                onClick={() => setBoardView("schedule")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  boardView === "schedule"
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Calendar className="h-3.5 w-3.5" />
-                Schedule
-              </button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5"
+              onClick={() => setBoardView("schedule")}
+            >
+              <Calendar data-icon="inline-start" className="h-3.5 w-3.5" />
+              Schedule
+            </Button>
 
             <Button
               variant="outline"
