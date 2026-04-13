@@ -1,5 +1,7 @@
 # Progress
 
+[2026-04-13] Paper theme updated to exact warm parchment palette from runcabinet.com: background #FAF6F1, card #FFFFFF, sidebar #F3EDE4, primary/ring #8B5E3C, secondary #F5E6D3, muted #FAF2EA, foreground #3B2F2F, muted-foreground #A89888, border #E8DDD0. All values converted to OKLCh. Accent preview color updated to #8B5E3C.
+
 [2026-04-13] Fullscreen "New Cabinet" dialog: replaced the two-step small dialog with a single fullscreen overlay (fixed inset-0 z-50, backdrop-blur-md) rendered via createPortal. All fields shown at once — cabinet name input, full agent grid picker, and "or import a pre-made team →" registry link at the bottom. AgentPicker got a layout="grid" prop so department columns wrap instead of horizontal-scroll in the fullscreen context. Fixed agents-not-appearing bug: LIBRARY_DIR in create/route.ts was pointing to the non-existent DATA_DIR/.agents/.library — corrected to PROJECT_ROOT/src/lib/agents/library where templates actually live.
 
 [2026-04-13] Task board header cleanup: moved "Jobs & Heartbeats" schedule button to topmost right corner of the title row (flex justify-between), removed schedule toggle from filter row so it's back to original (agent filter + scope select + Refresh only). Fixed LayoutList not-defined runtime error by adding the import.

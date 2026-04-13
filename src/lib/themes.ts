@@ -304,39 +304,41 @@ export const THEMES: ThemeDefinition[] = [
 
   // ─── LIGHT THEMES ───
   {
+    // Warm parchment palette derived from runcabinet.com
+    // #FAF6F1 bg · #F3EDE4 bg-warm · #3B2F2F text · #8B5E3C accent · #E8DDD0 border
     name: "paper",
     label: "Cabinet",
     type: "light",
     font: "'Inter', var(--font-sans)",
     headingFont: "'Source Serif 4', 'Instrument Serif', Georgia, serif",
-    accent: "#cc785c",
+    accent: "#8B5E3C",
     vars: {
-      "--background": "oklch(0.975 0.005 60)",
-      "--foreground": "oklch(0.28 0.02 45)",
-      "--card": "oklch(0.98 0.005 60)",
-      "--card-foreground": "oklch(0.28 0.02 45)",
-      "--popover": "oklch(0.98 0.005 60)",
-      "--popover-foreground": "oklch(0.28 0.02 45)",
-      "--primary": "oklch(0.64 0.11 45)",
-      "--primary-foreground": "oklch(0.975 0.005 60)",
-      "--secondary": "oklch(0.95 0.006 60)",
-      "--secondary-foreground": "oklch(0.28 0.02 45)",
-      "--muted": "oklch(0.95 0.006 60)",
-      "--muted-foreground": "oklch(0.5 0.03 45)",
-      "--accent": "oklch(0.95 0.006 60)",
-      "--accent-foreground": "oklch(0.28 0.02 45)",
-      "--destructive": "oklch(0.55 0.22 25)",
-      "--border": "oklch(0.9 0.01 45)",
-      "--input": "oklch(0.9 0.01 45)",
-      "--ring": "oklch(0.64 0.11 45)",
-      "--sidebar": "oklch(0.975 0.005 60)",
-      "--sidebar-foreground": "oklch(0.28 0.02 45)",
-      "--sidebar-primary": "oklch(0.64 0.11 45)",
-      "--sidebar-primary-foreground": "oklch(0.975 0.005 60)",
-      "--sidebar-accent": "oklch(0.93 0.008 45)",
-      "--sidebar-accent-foreground": "oklch(0.28 0.02 45)",
-      "--sidebar-border": "oklch(0.9 0.01 45)",
-      "--sidebar-ring": "oklch(0.5 0.05 45)",
+      "--background":           "oklch(0.974 0.005 60)",   // #FAF6F1
+      "--foreground":           "oklch(0.22 0.018 28)",    // #3B2F2F
+      "--card":                 "oklch(1 0 0)",             // #FFFFFF
+      "--card-foreground":      "oklch(0.22 0.018 28)",    // #3B2F2F
+      "--popover":              "oklch(1 0 0)",             // #FFFFFF
+      "--popover-foreground":   "oklch(0.22 0.018 28)",    // #3B2F2F
+      "--primary":              "oklch(0.47 0.09 48)",     // #8B5E3C
+      "--primary-foreground":   "oklch(1 0 0)",            // #FFFFFF
+      "--secondary":            "oklch(0.92 0.026 56)",    // #F5E6D3 accent-bg
+      "--secondary-foreground": "oklch(0.22 0.018 28)",    // #3B2F2F
+      "--muted":                "oklch(0.961 0.014 58)",   // #FAF2EA accent-bg-subtle
+      "--muted-foreground":     "oklch(0.64 0.025 50)",    // #A89888
+      "--accent":               "oklch(0.946 0.010 60)",   // #F3EDE4 bg-warm
+      "--accent-foreground":    "oklch(0.22 0.018 28)",    // #3B2F2F
+      "--destructive":          "oklch(0.55 0.22 25)",
+      "--border":               "oklch(0.882 0.016 56)",   // #E8DDD0
+      "--input":                "oklch(0.882 0.016 56)",   // #E8DDD0
+      "--ring":                 "oklch(0.47 0.09 48)",     // #8B5E3C
+      "--sidebar":              "oklch(0.946 0.010 60)",   // #F3EDE4 bg-warm
+      "--sidebar-foreground":   "oklch(0.22 0.018 28)",    // #3B2F2F
+      "--sidebar-primary":      "oklch(0.47 0.09 48)",     // #8B5E3C
+      "--sidebar-primary-foreground": "oklch(1 0 0)",      // #FFFFFF
+      "--sidebar-accent":       "oklch(0.92 0.026 56)",    // #F5E6D3
+      "--sidebar-accent-foreground":  "oklch(0.22 0.018 28)", // #3B2F2F
+      "--sidebar-border":       "oklch(0.882 0.016 56)",   // #E8DDD0
+      "--sidebar-ring":         "oklch(0.47 0.09 48)",     // #8B5E3C
     },
   },
   {
