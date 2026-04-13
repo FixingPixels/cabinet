@@ -8,6 +8,7 @@ import { buildConversationInstanceKey } from "@/lib/agents/conversation-identity
 import { listConversationMetas } from "@/lib/agents/conversation-store";
 import { readMemory, writeMemory } from "@/lib/agents/persona-manager";
 import { readCabinetOverview } from "@/lib/cabinets/overview";
+import { findOwningCabinetPathForPage } from "@/lib/cabinets/server-paths";
 import type { CabinetVisibilityMode } from "@/types/cabinets";
 
 export async function GET(req: NextRequest) {
@@ -108,6 +109,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const editorCabinetPath =
+      source === "editor" && pagePath
+        ? await findOwningCabinetPathForPage(pagePath)
+        : undefined;
+
     const conversationInput =
       source === "editor" && pagePath
         ? await buildEditorConversationPrompt({
@@ -122,6 +128,10 @@ export async function POST(req: NextRequest) {
             cabinetPath,
           });
 
+    const conversationCabinetPath =
+      editorCabinetPath ??
+      ("cabinetPath" in conversationInput ? conversationInput.cabinetPath : cabinetPath);
+
     const conversation = await startConversationRun({
       agentSlug,
       title: conversationInput.title,
@@ -133,11 +143,11 @@ export async function POST(req: NextRequest) {
           ? conversationInput.mentionedPaths
           : mentionedPaths,
       cwd: conversationInput.cwd,
-      cabinetPath: "cabinetPath" in conversationInput ? conversationInput.cabinetPath : cabinetPath,
+      cabinetPath: conversationCabinetPath,
       onComplete: async (completion) => {
         if (agentSlug === "general" || !completion.meta.contextSummary) return;
         const timestamp = new Date().toISOString();
-        const completionCabinetPath = completion.meta.cabinetPath || cabinetPath;
+        const completionCabinetPath = completion.meta.cabinetPath || conversationCabinetPath;
         const existingContext = await readMemory(
           agentSlug,
           "context.md",

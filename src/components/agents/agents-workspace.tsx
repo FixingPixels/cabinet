@@ -2093,6 +2093,10 @@ export function AgentsWorkspace({
             ) : (
               conversations.map((conversation) => {
                 const agent = agents.find((entry) => entry.slug === conversation.agentSlug);
+                const editedPagePath =
+                  conversation.agentSlug === "editor"
+                    ? conversation.mentionedPaths[0] || ""
+                    : "";
                 const conversationKey = buildConversationInstanceKey(conversation);
                 const isSelected =
                   selectedConversationId === conversation.id &&
@@ -2179,6 +2183,11 @@ export function AgentsWorkspace({
                           </span>
                         </div>
                       </div>
+                      {editedPagePath ? (
+                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                          edited: {editedPagePath}
+                        </p>
+                      ) : null}
                       <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                         <p className="truncate">{agent?.name || conversation.agentSlug}</p>
                         <span className="shrink-0">{formatRelative(conversation.startedAt)}</span>
