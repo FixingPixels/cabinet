@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import path from "path";
 import fs from "fs";
-import { spawn, type ChildProcess } from "child_process";
 import { log, success, error, warning } from "../lib/log.js";
 import { findCabinetRoot } from "../lib/paths.js";
 import { ensureApp } from "../lib/app-manager.js";
-import { openBrowser, npmCommand } from "../lib/process.js";
+import { openBrowser, npmCommand, spawnChild } from "../lib/process.js";
 import {
   parsePort,
   findAvailablePort,
@@ -37,6 +36,7 @@ async function runCabinet(opts: { appVersion?: string; open?: boolean }): Promis
   const cabinetDir = findCabinetRoot();
   if (!cabinetDir) {
     error('No cabinet found. Run "cabinetai create <name>" first, then cd into it.');
+    return;
   }
 
   const version = opts.appVersion || VERSION;
@@ -114,7 +114,7 @@ async function runCabinet(opts: { appVersion?: string; open?: boolean }): Promis
   };
 
   log("Starting Next.js server...");
-  const appChild = spawn(
+  const appChild = spawnChild(
     process.execPath,
     [nextBin, "dev", "-p", String(appPort)],
     {
@@ -137,7 +137,7 @@ async function runCabinet(opts: { appVersion?: string; open?: boolean }): Promis
   const daemonScript = path.join(appDir, "server", "cabinet-daemon.ts");
 
   log("Starting daemon...");
-  const daemonChild = spawn(
+  const daemonChild = spawnChild(
     process.execPath,
     [tsxCli, daemonScript],
     {
@@ -175,7 +175,7 @@ async function runCabinet(opts: { appVersion?: string; open?: boolean }): Promis
   }
 
   // 10. Handle signals and cleanup
-  const children: ChildProcess[] = [appChild, daemonChild];
+  const children = [appChild, daemonChild];
 
   const cleanup = () => {
     clearRuntimeService(cabinetDir, "app", appChild.pid!);

@@ -10,10 +10,12 @@ export function registerCreate(program: Command): void {
     .command("create [name]")
     .description("Create a new cabinet directory")
     .action((name?: string) => {
-      if (!name) {
+      const cabinetName = name?.trim();
+      if (!cabinetName) {
         error("Please provide a cabinet name. Usage: npx cabinetai create <name>");
+        return;
       }
-      createCabinet(name);
+      createCabinet(cabinetName);
     });
 }
 
