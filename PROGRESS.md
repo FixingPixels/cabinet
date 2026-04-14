@@ -100,3 +100,5 @@
 [2026-04-10] Added in-app toast notifications for agent task completion/failure. When a conversation finishes, a slide-in toast appears in the bottom-right with agent emoji, status, and title. Clicking navigates to the conversation. Uses an in-memory notification queue drained by SSE. Documented in notifications.md.
 
 [2026-04-10] Added notification sounds for task completion/failure toasts. Uses Web Audio API to synthesize tones — ascending chime for success, descending tone for failure. No audio files needed.
+
+[2026-04-14] Added SECURITY_AUDIT.md — a source-review of the app, terminal-server, and agent runners covering path traversal, command injection, auth, XSS, uploads, and secrets handling. 11 findings (3 Critical, 4 High, 3 Medium, 1 Low) with fix recommendations.
