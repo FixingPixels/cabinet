@@ -49,6 +49,7 @@ export interface ConversationRuntimeOverride {
   providerId?: string;
   adapterType?: string;
   model?: string;
+  effort?: string;
 }
 
 export interface CreateConversationRequest extends ConversationRuntimeOverride {

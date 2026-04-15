@@ -107,6 +107,10 @@ export async function POST(req: NextRequest) {
       typeof body.model === "string" && body.model.trim()
         ? body.model.trim()
         : undefined;
+    const requestedEffort =
+      typeof body.effort === "string" && body.effort.trim()
+        ? body.effort.trim()
+        : undefined;
 
     if (!userMessage) {
       return NextResponse.json(
@@ -157,6 +161,9 @@ export async function POST(req: NextRequest) {
         : { ...(conversationInput.adapterConfig || {}) };
     if (requestedModel) {
       adapterConfigBase.model = requestedModel;
+    }
+    if (requestedEffort) {
+      adapterConfigBase.effort = requestedEffort;
     }
     const resolvedAdapterConfig =
       Object.keys(adapterConfigBase).length > 0 ? adapterConfigBase : undefined;

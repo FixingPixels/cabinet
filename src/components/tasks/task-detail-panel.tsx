@@ -50,6 +50,19 @@ function readConversationModel(meta: Pick<ConversationMeta, "adapterConfig">): s
   return typeof model === "string" && model.trim() ? model.trim() : null;
 }
 
+function readConversationEffort(meta: Pick<ConversationMeta, "adapterConfig">): string | null {
+  const config = meta.adapterConfig;
+  if (!config || typeof config !== "object") return null;
+  const effort =
+    typeof config.effort === "string" && config.effort.trim()
+      ? config.effort
+      : typeof config.reasoningEffort === "string" && config.reasoningEffort.trim()
+        ? config.reasoningEffort
+        : null;
+
+  return effort ? startCase(effort) : null;
+}
+
 function formatProviderLabel(providerId?: string): string | null {
   if (!providerId) return null;
 
@@ -68,10 +81,14 @@ function buildRuntimeLabel(
   meta: Pick<ConversationMeta, "adapterConfig" | "providerId">
 ): string | null {
   const model = readConversationModel(meta);
+  const effort = readConversationEffort(meta);
   const provider = formatProviderLabel(meta.providerId);
 
+  if (model && provider && effort) return `${model} · ${provider} · ${effort}`;
   if (model && provider) return `${model} · ${provider}`;
+  if (model && effort) return `${model} · ${effort}`;
   if (model) return model;
+  if (provider && effort) return `${provider} · ${effort}`;
   if (provider) return `${provider} · default model`;
   return null;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bot, BrainCircuit, Check, Sparkles } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -18,7 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getDefaultAdapterTypeForProviderInfo } from "@/lib/agents/adapter-options";
 import type { ConversationRuntimeOverride } from "@/types/conversations";
-import type { ProviderInfo, ProviderModel } from "@/types/agents";
+import type {
+  ProviderEffortLevel,
+  ProviderInfo,
+  ProviderModel,
+} from "@/types/agents";
 
 export type TaskRuntimeSelection = ConversationRuntimeOverride;
 
@@ -26,6 +31,7 @@ interface ProvidersResponse {
   providers?: ProviderInfo[];
   defaultProvider?: string | null;
   defaultModel?: string | null;
+  defaultEffort?: string | null;
 }
 
 function isProviderReady(provider: ProviderInfo): boolean {
@@ -74,11 +80,41 @@ function resolveSelectedModel(
   );
 }
 
+function resolveSelectedEffort(
+  provider: ProviderInfo | undefined,
+  requestedEffort?: string,
+  fallbackEffort?: string | null
+): ProviderEffortLevel | undefined {
+  const effortLevels = provider?.effortLevels || [];
+  if (effortLevels.length === 0) return undefined;
+
+  return (
+    effortLevels.find((effort) => effort.id === requestedEffort) ||
+    effortLevels.find((effort) => effort.id === fallbackEffort) ||
+    undefined
+  );
+}
+
+function getSuggestedEffort(
+  provider: ProviderInfo | undefined
+): ProviderEffortLevel | undefined {
+  const effortLevels = provider?.effortLevels || [];
+  if (effortLevels.length === 0) return undefined;
+
+  return (
+    effortLevels.find((effort) => effort.id === "medium") ||
+    effortLevels.find((effort) => effort.id === "high") ||
+    effortLevels[Math.floor((effortLevels.length - 1) / 2)] ||
+    effortLevels[0]
+  );
+}
+
 function normalizeSelection(
   value: TaskRuntimeSelection,
   providers: ProviderInfo[],
   defaultProviderId?: string | null,
-  defaultModel?: string | null
+  defaultModel?: string | null,
+  defaultEffort?: string | null
 ): TaskRuntimeSelection {
   const selectedProvider = resolveSelectedProvider(
     providers,
@@ -90,6 +126,11 @@ function normalizeSelection(
     value.model,
     selectedProvider?.id === defaultProviderId ? defaultModel : undefined
   );
+  const selectedEffort = resolveSelectedEffort(
+    selectedProvider,
+    value.effort,
+    selectedProvider?.id === defaultProviderId ? defaultEffort : undefined
+  );
 
   return {
     providerId: selectedProvider?.id,
@@ -99,6 +140,7 @@ function normalizeSelection(
       defaultProviderId
     ),
     model: selectedModel?.id,
+    effort: selectedEffort?.id,
   };
 }
 
@@ -109,7 +151,8 @@ function sameSelection(
   return (
     (left.providerId || "") === (right.providerId || "") &&
     (left.adapterType || "") === (right.adapterType || "") &&
-    (left.model || "") === (right.model || "")
+    (left.model || "") === (right.model || "") &&
+    (left.effort || "") === (right.effort || "")
   );
 }
 
@@ -140,6 +183,7 @@ export function TaskRuntimePicker({
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null);
   const [defaultModel, setDefaultModel] = useState<string | null>(null);
+  const [defaultEffort, setDefaultEffort] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -158,11 +202,15 @@ export function TaskRuntimePicker({
         setDefaultModel(
           typeof data.defaultModel === "string" ? data.defaultModel : null
         );
+        setDefaultEffort(
+          typeof data.defaultEffort === "string" ? data.defaultEffort : null
+        );
       } catch {
         if (!cancelled) {
           setProviders([]);
           setDefaultProviderId(null);
           setDefaultModel(null);
+          setDefaultEffort(null);
         }
       } finally {
         if (!cancelled) {
@@ -179,9 +227,15 @@ export function TaskRuntimePicker({
   const normalizedValue = useMemo(
     () =>
       providers.length > 0
-        ? normalizeSelection(value, providers, defaultProviderId, defaultModel)
+        ? normalizeSelection(
+            value,
+            providers,
+            defaultProviderId,
+            defaultModel,
+            defaultEffort
+          )
         : value,
-    [defaultModel, defaultProviderId, providers, value]
+    [defaultEffort, defaultModel, defaultProviderId, providers, value]
   );
 
   useEffect(() => {
@@ -213,6 +267,18 @@ export function TaskRuntimePicker({
       ),
     [defaultModel, defaultProviderId, normalizedValue.model, selectedProvider]
   );
+  const selectedEffort = useMemo(
+    () =>
+      resolveSelectedEffort(
+        selectedProvider,
+        normalizedValue.effort,
+        selectedProvider?.id === defaultProviderId ? defaultEffort : undefined
+      ),
+    [defaultEffort, defaultProviderId, normalizedValue.effort, selectedProvider]
+  );
+
+  const selectedEffortLevels = selectedProvider?.effortLevels || [];
+  const displayEffort = selectedEffort || getSuggestedEffort(selectedProvider);
 
   function applySelection(providerId: string, modelId?: string) {
     onChange(
@@ -220,10 +286,27 @@ export function TaskRuntimePicker({
         {
           providerId,
           model: modelId,
+          effort: normalizedValue.effort,
         },
         providers,
         defaultProviderId,
-        defaultModel
+        defaultModel,
+        defaultEffort
+      )
+    );
+  }
+
+  function applyEffort(effortId?: string) {
+    onChange(
+      normalizeSelection(
+        {
+          ...normalizedValue,
+          effort: effortId,
+        },
+        providers,
+        defaultProviderId,
+        defaultModel,
+        defaultEffort
       )
     );
   }
@@ -234,16 +317,26 @@ export function TaskRuntimePicker({
         {
           providerId: defaultProviderId || undefined,
           model: defaultModel || undefined,
+          effort: defaultEffort || undefined,
         },
         providers,
         defaultProviderId,
-        defaultModel
+        defaultModel,
+        defaultEffort
       )
     );
   }
 
+  const selectionSummary = selectedProvider
+    ? [selectedProvider.name, selectedModel?.name, selectedEffort?.name]
+        .filter(Boolean)
+        .join(" · ")
+    : loading
+      ? "Loading providers..."
+      : "No providers available";
+
   const triggerTitle = selectedProvider
-    ? `Task model: ${selectedProvider.name}${selectedModel ? ` · ${selectedModel.name}` : ""}`
+    ? `Task model: ${selectionSummary}`
     : "Task model";
 
   return (
@@ -263,24 +356,117 @@ export function TaskRuntimePicker({
         <DropdownMenuGroup>
           <DropdownMenuLabel>Task Model</DropdownMenuLabel>
           <div className="px-1.5 pb-2 text-[11px] text-muted-foreground">
-            {selectedProvider
-              ? `${selectedProvider.name}${selectedModel ? ` · ${selectedModel.name}` : ""}`
-              : loading
-                ? "Loading providers..."
-                : "No providers available"}
+            {selectionSummary}
           </div>
         </DropdownMenuGroup>
+
         <DropdownMenuItem onClick={resetToDefault} disabled={providers.length === 0}>
           Use app default
         </DropdownMenuItem>
+
+        {selectedProvider && selectedEffortLevels.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <div className="flex items-center justify-between gap-2 px-1.5 pb-1">
+                <DropdownMenuLabel className="px-0 py-0">
+                  Reasoning Effort
+                </DropdownMenuLabel>
+                <button
+                  type="button"
+                  className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    applyEffort(undefined);
+                  }}
+                >
+                  {selectedProvider.id === defaultProviderId && defaultEffort
+                    ? "App default"
+                    : "Provider default"}
+                </button>
+              </div>
+
+              <div className="px-1.5 pb-1 text-[11px] text-muted-foreground">
+                {selectedEffort
+                  ? selectedEffort.description || selectedEffort.name
+                  : selectedProvider.id === defaultProviderId && defaultEffort
+                    ? `Using app default · ${displayEffort?.name || defaultEffort}`
+                    : "Using provider default"}
+              </div>
+
+              {displayEffort ? (
+                <div
+                  className="px-1.5 pb-2"
+                  onClick={(event) => event.stopPropagation()}
+                  onPointerDown={(event) => event.stopPropagation()}
+                >
+                  <Slider
+                    value={[
+                      Math.max(
+                        selectedEffortLevels.findIndex(
+                          (effort) => effort.id === displayEffort.id
+                        ),
+                        0
+                      ),
+                    ]}
+                    min={0}
+                    max={Math.max(selectedEffortLevels.length - 1, 0)}
+                    step={1}
+                    onValueChange={(nextValue) => {
+                      const rawValue = Array.isArray(nextValue)
+                        ? nextValue[0] ?? 0
+                        : nextValue;
+                      const nextIndex = Math.max(
+                        0,
+                        Math.min(
+                          selectedEffortLevels.length - 1,
+                          Math.round(rawValue)
+                        )
+                      );
+                      const nextEffort = selectedEffortLevels[nextIndex];
+                      if (nextEffort) {
+                        applyEffort(nextEffort.id);
+                      }
+                    }}
+                  />
+                  <div className="mt-2 flex items-start justify-between gap-2 text-[10px] text-muted-foreground">
+                    {selectedEffortLevels.map((effort) => (
+                      <button
+                        key={effort.id}
+                        type="button"
+                        className={cn(
+                          "min-w-0 flex-1 truncate text-center transition-colors",
+                          displayEffort.id === effort.id
+                            ? "font-medium text-foreground"
+                            : "hover:text-foreground"
+                        )}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          applyEffort(effort.id);
+                        }}
+                      >
+                        {effort.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </DropdownMenuGroup>
+          </>
+        ) : null}
+
         <DropdownMenuSeparator />
+
         {selectableProviders.length > 0 ? (
           selectableProviders.map((provider) => {
             const providerSelection = normalizeSelection(
               { providerId: provider.id },
               providers,
               defaultProviderId,
-              defaultModel
+              defaultModel,
+              defaultEffort
             );
             const providerDefaultModel = resolveSelectedModel(
               provider,
@@ -320,7 +506,7 @@ export function TaskRuntimePicker({
                   {(provider.models || []).length > 0 ? (
                     <>
                       <DropdownMenuSeparator />
-                      {provider.models?.map((model) => (
+                      {(provider.models || []).map((model) => (
                         <DropdownMenuItem
                           key={model.id}
                           onClick={() => applySelection(provider.id, model.id)}
@@ -347,9 +533,7 @@ export function TaskRuntimePicker({
             );
           })
         ) : (
-          <DropdownMenuItem disabled>
-            No providers available
-          </DropdownMenuItem>
+          <DropdownMenuItem disabled>No providers available</DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
