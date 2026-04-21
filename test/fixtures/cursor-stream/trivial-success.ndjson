@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","apiKeySource":"login","cwd":"/tmp/workspace","session_id":"00000000-0000-0000-0000-000000000001","model":"Composer 2","permissionMode":"default"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Reply with exactly one word: pong"}]},"session_id":"00000000-0000-0000-0000-000000000001"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"\npong"}]},"session_id":"00000000-0000-0000-0000-000000000001"}
+{"type":"result","subtype":"success","duration_ms":11137,"duration_api_ms":11137,"is_error":false,"result":"\npong","session_id":"00000000-0000-0000-0000-000000000001","request_id":"00000000-0000-0000-0000-000000000002","usage":{"inputTokens":100,"outputTokens":10,"cacheReadTokens":0,"cacheWriteTokens":0}}

@@ -1,0 +1,7 @@
+{"type":"system","subtype":"init","apiKeySource":"login","cwd":"/tmp/workspace","session_id":"00000000-0000-0000-0000-000000000001","model":"Composer 2","permissionMode":"default"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Say hi in 3 words"}]},"session_id":"00000000-0000-0000-0000-000000000001"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Hello"}]},"session_id":"00000000-0000-0000-0000-000000000001","timestamp_ms":1776770180387}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":" there"}]},"session_id":"00000000-0000-0000-0000-000000000001","timestamp_ms":1776770180388}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":" friend"}]},"session_id":"00000000-0000-0000-0000-000000000001","timestamp_ms":1776770180388}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Hello there friend"}]},"session_id":"00000000-0000-0000-0000-000000000001"}
+{"type":"result","subtype":"success","duration_ms":2494,"duration_api_ms":2494,"is_error":false,"result":"Hello there friend","session_id":"00000000-0000-0000-0000-000000000001","request_id":"00000000-0000-0000-0000-000000000003","usage":{"inputTokens":50,"outputTokens":7,"cacheReadTokens":0,"cacheWriteTokens":0}}
