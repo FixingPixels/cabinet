@@ -14,6 +14,7 @@ import {
 } from "./provider-runtime";
 import { claudeCodeProvider } from "./providers/claude-code";
 import { codexCliProvider } from "./providers/codex-cli";
+import { cursorCliProvider } from "./providers/cursor-cli";
 
 async function createExecutableScript(source: string): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cabinet-provider-test-"));
@@ -60,6 +61,32 @@ test("Codex provider builds the expected launch arguments", () => {
   const interactiveSession = codexCliProvider.buildSessionInvocation?.(undefined, process.cwd());
   assert.ok(interactiveSession);
   assert.deepEqual(interactiveSession.args, ["--ephemeral"]);
+  assert.equal(interactiveSession.initialPrompt, undefined);
+});
+
+test("Cursor provider builds the expected launch arguments", () => {
+  const workdir = "/tmp/cabinet-wd";
+  const oneShot = cursorCliProvider.buildOneShotInvocation?.("Say OK", workdir);
+  assert.ok(oneShot);
+  assert.deepEqual(oneShot.args, [
+    "-p",
+    "--trust",
+    "--output-format",
+    "stream-json",
+    "--stream-partial-output",
+    "--workspace",
+    workdir,
+    "Say OK",
+  ]);
+
+  const sessionWithPrompt = cursorCliProvider.buildSessionInvocation?.("Review this", workdir);
+  assert.ok(sessionWithPrompt);
+  assert.deepEqual(sessionWithPrompt.args, ["--workspace", workdir, "Review this"]);
+  assert.equal(sessionWithPrompt.initialPrompt, undefined);
+
+  const interactiveSession = cursorCliProvider.buildSessionInvocation?.(undefined, workdir);
+  assert.ok(interactiveSession);
+  assert.deepEqual(interactiveSession.args, ["--workspace", workdir]);
   assert.equal(interactiveSession.initialPrompt, undefined);
 });
 

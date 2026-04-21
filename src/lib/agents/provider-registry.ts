@@ -1,6 +1,7 @@
 import type { AgentProvider, ProviderRegistry } from "./provider-interface";
 import { claudeCodeProvider } from "./providers/claude-code";
 import { codexCliProvider } from "./providers/codex-cli";
+import { cursorCliProvider } from "./providers/cursor-cli";
 import { geminiCliProvider } from "./providers/gemini-cli";
 
 class ProviderRegistryImpl implements ProviderRegistry {
@@ -40,6 +41,7 @@ export const providerRegistry = new ProviderRegistryImpl();
 // Register built-in providers
 providerRegistry.register(claudeCodeProvider);
 providerRegistry.register(codexCliProvider);
+providerRegistry.register(cursorCliProvider);
 providerRegistry.register(geminiCliProvider);
 
 // Future providers will be registered here:
