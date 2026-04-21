@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
 import { buildManualConversationPrompt } from "../src/lib/agents/conversation-runner";
+import { DATA_DIR } from "../src/lib/storage/path-utils";
 import {
   parseCabinetBlock,
   transcriptShowsCompletedRun,
@@ -35,10 +37,7 @@ test("manual cabinet-scoped prompts explicitly pin work to the cabinet root", as
     cabinetPath: "hilas-cabinet",
   });
 
-  assert.equal(
-    prompt.cwd,
-    "/Users/mybiblepath/Development/cabinet/data/hilas-cabinet"
-  );
+  assert.equal(prompt.cwd, path.join(DATA_DIR, "hilas-cabinet"));
   assert.match(
     prompt.prompt,
     /Work only inside the cabinet-scoped knowledge base rooted at \/data\/hilas-cabinet\./

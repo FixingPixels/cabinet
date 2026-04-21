@@ -69,6 +69,13 @@ export async function readBundledReleaseManifest(): Promise<ReleaseManifest> {
     // cabinet-release.json may be stale if a version bump didn't regenerate it
     if (pkg.version) {
       manifest.version = pkg.version;
+      const synced = buildFallbackManifest(pkg);
+      manifest.gitTag = synced.gitTag;
+      manifest.releaseNotesUrl = synced.releaseNotesUrl;
+      manifest.sourceTarballUrl = synced.sourceTarballUrl;
+      if (synced.createCabinetVersion !== undefined) {
+        manifest.createCabinetVersion = synced.createCabinetVersion;
+      }
     }
     return manifest;
   } catch {
