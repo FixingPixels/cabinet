@@ -125,6 +125,29 @@ const PROVIDER_SETUP_STEPS: Record<string, SetupStep[]> = {
     { title: "Log in to Codex", detail: "Authenticate with your ChatGPT or API account:", cmd: "codex login" },
     { title: "Verify login", detail: "Check that you're logged in:", cmd: "codex login status" },
   ],
+  "cursor-cli": [
+    { title: "Open a terminal", detail: "You'll need a terminal to run the next steps.", openTerminal: true },
+    {
+      title: "Install Cursor CLI",
+      detail:
+        "Official install uses the Cursor shell script (macOS, Linux, or WSL). npm-based install may also be documented on the installation page.",
+      cmd: "curl https://cursor.com/install -fsS | bash",
+      link: { label: "Cursor CLI installation", url: "https://cursor.com/docs/cli/installation" },
+    },
+    {
+      title: "Add ~/.local/bin to PATH",
+      detail:
+        "The installer places the agent binary in ~/.local/bin. Add that directory to your PATH and open a new terminal if the agent command is not found.",
+    },
+    {
+      title: "Authenticate",
+      detail:
+        "For headless or scripted use, set CURSOR_API_KEY in your environment. Otherwise use an interactive login.",
+      cmd: "agent login",
+      link: { label: "Cursor CLI authentication", url: "https://cursor.com/docs/cli/reference/authentication" },
+    },
+    { title: "Verify", detail: "Confirm the CLI can see your account:", cmd: "agent whoami" },
+  ],
 };
 
 export function SettingsPage() {
