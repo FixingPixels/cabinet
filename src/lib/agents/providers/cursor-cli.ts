@@ -31,6 +31,15 @@ export const cursorCliProvider: AgentProvider = {
       },
     },
     {
+      title: "Headless / detached runs",
+      detail:
+        "Cabinet runs the CLI in print mode (`-p`) for jobs and streaming logs. There is no interactive prompt for MCP approval in this mode—if your workflow needs approved MCP servers, enable the adapter option that maps to `--approve-mcps`, or avoid MCP-only tools in detached runs. File-edit automation may require `--force` / `--approve-mcps` in adapter config for fully non-interactive runs. Session resume for Cursor is not supported in Cabinet yet.",
+      link: {
+        label: "Cursor headless CLI",
+        url: "https://cursor.com/docs/cli/headless",
+      },
+    },
+    {
       title: "Verify",
       detail: "Confirm the CLI is available and signed in:",
       command: "agent whoami",

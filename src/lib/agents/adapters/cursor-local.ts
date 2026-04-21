@@ -2,8 +2,12 @@ import { cursorCliProvider } from "../providers/cursor-cli";
 import { resolveCliCommand } from "../provider-cli";
 import { providerStatusToEnvironmentTest } from "./environment";
 import {
+  consumeCursorStderr,
   consumeCursorStreamJson,
+  createCursorStderrAccumulator,
   createCursorStreamAccumulator,
+  filterCursorStderr,
+  flushCursorStderr,
   flushCursorStreamJson,
 } from "./cursor-stream";
 import type { AgentExecutionAdapter } from "./types";
@@ -95,6 +99,7 @@ export const cursorLocalAdapter: AgentExecutionAdapter = {
       readStringConfig(ctx.config, "command") || resolveCliCommand(cursorCliProvider);
     const args = [...buildCursorArgs(ctx.config, ctx.cwd), ctx.prompt];
     const accumulator = createCursorStreamAccumulator();
+    const stderrAccumulator = createCursorStderrAccumulator();
 
     await ctx.onMeta?.({
       adapterType: ctx.adapterType,
@@ -116,8 +121,9 @@ export const cursorLocalAdapter: AgentExecutionAdapter = {
         void ctx.onLog("stdout", display);
       },
       onStderr: (chunk) => {
-        if (!chunk) return;
-        void ctx.onLog("stderr", chunk);
+        const display = consumeCursorStderr(stderrAccumulator, chunk);
+        if (!display) return;
+        void ctx.onLog("stderr", display);
       },
     });
 
@@ -125,6 +131,13 @@ export const cursorLocalAdapter: AgentExecutionAdapter = {
     if (trailingDisplay) {
       await ctx.onLog("stdout", trailingDisplay);
     }
+
+    const trailingStderr = flushCursorStderr(stderrAccumulator);
+    if (trailingStderr) {
+      await ctx.onLog("stderr", trailingStderr);
+    }
+
+    const filteredStderr = filterCursorStderr(result.stderr);
 
     const output =
       (accumulator.finalText && String(accumulator.finalText).trim()) ||
@@ -139,7 +152,7 @@ export const cursorLocalAdapter: AgentExecutionAdapter = {
       errorMessage:
         result.exitCode === 0
           ? null
-          : result.stderr.trim() || output || "Cursor local execution failed.",
+          : filteredStderr || result.stderr.trim() || output || "Cursor local execution failed.",
       usage: accumulator.usage,
       sessionId: accumulator.sessionId,
       provider: cursorCliProvider.id,

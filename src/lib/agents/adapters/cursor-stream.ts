@@ -246,3 +246,77 @@ export function flushCursorStreamJson(
   accumulator.buffer = "";
   return consumeCursorEvent(accumulator, buffered);
 }
+
+/** Strip ANSI (invalid API key warnings and similar use color codes on stderr; see spike). */
+function stripCursorStderrAnsi(line: string): string {
+  return line.replace(
+    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+    ""
+  );
+}
+
+/**
+ * Lines to drop entirely (confirmed noisy from real CLI runs). Keep empty until we capture
+ * stable patterns; ANSI stripping applies to all non-suppressed lines first.
+ */
+const CURSOR_STDERR_NOISE_PATTERNS: RegExp[] = [];
+
+export interface CursorStderrAccumulator {
+  buffer: string;
+}
+
+export function createCursorStderrAccumulator(): CursorStderrAccumulator {
+  return { buffer: "" };
+}
+
+function shouldSuppressCursorStderrLine(trimmedPlain: string): boolean {
+  if (!trimmedPlain) return true;
+  return CURSOR_STDERR_NOISE_PATTERNS.some((pattern) =>
+    pattern.test(trimmedPlain)
+  );
+}
+
+function consumeCursorStderrLine(line: string): string {
+  const plain = stripCursorStderrAnsi(line);
+  const trimmed = plain.trim();
+  if (shouldSuppressCursorStderrLine(trimmed)) {
+    return "";
+  }
+
+  return plain.endsWith("\n") ? plain : `${plain}\n`;
+}
+
+export function consumeCursorStderr(
+  accumulator: CursorStderrAccumulator,
+  chunk: string
+): string {
+  accumulator.buffer = `${accumulator.buffer}${chunk}`;
+  const lines = accumulator.buffer.split(/\r?\n/);
+  accumulator.buffer = lines.pop() || "";
+
+  let display = "";
+  for (const line of lines) {
+    display += consumeCursorStderrLine(line);
+  }
+
+  return display;
+}
+
+export function flushCursorStderr(
+  accumulator: CursorStderrAccumulator
+): string {
+  if (!accumulator.buffer) {
+    return "";
+  }
+
+  const buffered = accumulator.buffer;
+  accumulator.buffer = "";
+  return consumeCursorStderrLine(buffered);
+}
+
+export function filterCursorStderr(stderr: string): string {
+  const accumulator = createCursorStderrAccumulator();
+  const display = consumeCursorStderr(accumulator, stderr);
+  const trailing = flushCursorStderr(accumulator);
+  return `${display}${trailing}`.trim();
+}

@@ -3,8 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
+  consumeCursorStderr,
   consumeCursorStreamJson,
+  createCursorStderrAccumulator,
   createCursorStreamAccumulator,
+  filterCursorStderr,
+  flushCursorStderr,
   flushCursorStreamJson,
 } from "./cursor-stream";
 
@@ -95,4 +99,19 @@ test("cursor stream: newline buffering across chunks", () => {
 
   assert.equal(streamed, "\npong");
   assert.equal(acc.display, "\npong");
+});
+
+test("cursor stderr: strips ANSI (e.g. invalid API key warnings) per line", () => {
+  const acc = createCursorStderrAccumulator();
+  const colored = "\x1b[31mInvalid API key\x1b[0m\n";
+  let out = consumeCursorStderr(acc, colored);
+  out += flushCursorStderr(acc);
+  assert.equal(out, "Invalid API key\n");
+});
+
+test("cursor stderr: filterCursorStderr matches streaming + flush path", () => {
+  assert.equal(
+    filterCursorStderr("\x1b[33mWarning:\x1b[0m fix your key\n"),
+    "Warning: fix your key"
+  );
 });
